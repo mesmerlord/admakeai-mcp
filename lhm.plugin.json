@@ -1,0 +1,2956 @@
+{
+  "author": "AdMakeAI",
+  "authorUrl": "https://github.com/mesmerlord",
+  "category": "media-generate",
+  "cloudEndpoint": "https://admakeai.com/api/mcp",
+  "description": "Generate Meta ad creatives and copy, research a competitor's live Facebook ads, and launch or pause real campaigns. Remote MCP server with OAuth 2.1, no API key.",
+  "homepage": "https://admakeai.com",
+  "icon": "📣",
+  "identifier": "mesmerlord-admakeai-mcp",
+  "name": "AdMakeAI",
+  "tags": [
+    "advertising",
+    "facebook-ads",
+    "meta-ads",
+    "marketing",
+    "image-generation",
+    "ad-creative",
+    "competitor-research",
+    "instagram"
+  ],
+  "tools": [
+    {
+      "description": "Get the authenticated user's profile, plan, and credit balance.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "user__me"
+    },
+    {
+      "description": "Get the authenticated user's current credit balance only.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "user__getCredits"
+    },
+    {
+      "description": "List the user's projects (brands). ALWAYS call this before generating anything: every generation needs a projectId, and the project's brand brief is what the render is built from. Pick the project the user's request is about; if more than one could fit, ask which. Projects cannot be created through this API — if the user has none, tell them to set one up at https://admakeai.com/dashboard.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adResearch__listProjects"
+    },
+    {
+      "description": "Get one project with its full brand brief, competitors, research jobs, and scraped-ad counts. Read this before generating so the creative matches the brand.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__getProject"
+    },
+    {
+      "description": "Poll a project's research status: pipeline stage, running scrape jobs, competitor and saved-ad counts.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__pollStatus"
+    },
+    {
+      "description": "[write] Update a project's brand brief (product summary, target audience, value proposition, industry, keywords). Sharpening the brief improves every later generation.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "industry": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 15,
+            "type": "array"
+          },
+          "productSummary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "targetAudience": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "valueProposition": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "name": "project__updateBrief"
+    },
+    {
+      "description": "List a project's stored assets (product photos, logos) with their URLs, for use as reference images.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "name": "project__getAssets"
+    },
+    {
+      "description": "[write] Upload a JPEG, PNG, or WebP image from base64 bytes into AdMakeAI storage. Returns an image ID and public URL for image generation or Facebook campaign drafts.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "base64Data": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "filename": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "turnstileToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "base64Data"
+        ],
+        "type": "object"
+      },
+      "name": "upload__uploadImageBase64"
+    },
+    {
+      "description": "List the user's previously uploaded source images, newest first, with pagination.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "upload__getUserImages"
+    },
+    {
+      "description": "[write] Queue a FINISHED AD image render. Required: projectId. Call adResearch.listProjects first and pick the project the request is about, or ask the user when it is ambiguous; never guess an id. Also required: prompt, a creative brief rather than a finished image prompt. How the prompt is used: a creative-director model rewrites it into the real image prompt using the project's brand brief, and that rewrite always adds a specific headline, a subline, a CTA button, and the project logo when the project has one. Negative instructions in the prompt ('no text', 'no logo', 'nothing but the product') cannot suppress those; use adGeneration.generateImage when the caller wants exact or no text. Optional: adType, aspectRatio, quality (low/high/ultra), referenceImageUrls, inputImageId (from upload.uploadImageBase64), referenceAdId or referenceInspirationId to remix an existing ad. Costs credits. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "type": "string"
+          },
+          "adType": {
+            "default": "product_showcase",
+            "enum": [
+              "product_showcase",
+              "promotional",
+              "testimonial",
+              "lifestyle",
+              "comparison",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "aspectRatio": {
+            "default": "1:1",
+            "enum": [
+              "1:1",
+              "4:5",
+              "9:16",
+              "16:9"
+            ],
+            "type": "string"
+          },
+          "inputImageId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "prompt": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "quality": {
+            "default": "low",
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          },
+          "referenceAdId": {
+            "type": "string"
+          },
+          "referenceImageUrls": {
+            "items": {
+              "format": "uri",
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "referenceInspirationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "name": "adGeneration__create"
+    },
+    {
+      "description": "[write] Queue an image render from a VERBATIM prompt. The prompt goes to the image model exactly as written: no creative-director rewrite, no brand brief, no added headline, subline or CTA, and no project logo. The image contains only what the prompt stipulates. Use this when the caller wants only specific stipulated text, forbids text/logos/CTAs, or wants raw scene, product, or photography imagery rather than a finished ad; use adGeneration.create for finished ads. Required: projectId (credit scoping only, nothing from it enters the prompt) and prompt. Optional: aspectRatio, quality (low/high/ultra), referenceImageUrls and inputImageId for image-to-image. Costs the same credits as adGeneration.create. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "aspectRatio": {
+            "default": "1:1",
+            "enum": [
+              "1:1",
+              "4:5",
+              "9:16",
+              "16:9"
+            ],
+            "type": "string"
+          },
+          "inputImageId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "prompt": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "quality": {
+            "default": "low",
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          },
+          "referenceImageUrls": {
+            "items": {
+              "format": "uri",
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "projectId",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "name": "adGeneration__generateImage"
+    },
+    {
+      "description": "[write] Queue an image-to-image edit and return immediately. The universal edit tool: change background, restyle, swap a subject, change aspect ratio, add brand assets, or remix a competitor ad. Source is either sourceAdId (one of the user's own generations) or sourceImageUrl (any direct image URL). Costs credits. Poll adGeneration.getById until COMPLETED.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "aspectRatio": {
+            "enum": [
+              "1:1",
+              "4:5",
+              "9:16",
+              "16:9"
+            ],
+            "type": "string"
+          },
+          "editInstructions": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "quality": {
+            "default": "low",
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          },
+          "sourceAdId": {
+            "type": "string"
+          },
+          "sourceImageUrl": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "editInstructions"
+        ],
+        "type": "object"
+      },
+      "name": "adGeneration__edit"
+    },
+    {
+      "description": "Get the status, prompt, and resulting image URLs of a single ad generation by ID. Use to poll until status is COMPLETED.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adGeneration__getById"
+    },
+    {
+      "description": "Paginated list of the user's ad generations, newest first.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adGeneration__list"
+    },
+    {
+      "description": "Get the user's most recent ad generations (default limit 12).",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 6,
+            "maximum": 20,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adGeneration__getRecent"
+    },
+    {
+      "description": "Full-text search across the user's ad generations by prompt.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "cursor": {
+            "default": 0,
+            "minimum": 0,
+            "type": "number"
+          },
+          "filter": {
+            "default": "all",
+            "enum": [
+              "all",
+              "liked",
+              "downloaded",
+              "not_downloaded"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "default": 24,
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
+          },
+          "query": {
+            "default": "",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adGeneration__searchAll"
+    },
+    {
+      "description": "List the user's currently-pending ad generations.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "adGeneration__listPending"
+    },
+    {
+      "description": "[write] Star or unstar one of the user's ad generations. Free — use it to mark the winner of a batch.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adGeneration__toggleFavorite"
+    },
+    {
+      "description": "[write] Write Facebook/Instagram ad copy for an ad image URL: headline, primary text, description, CTA, and hook angle. Returns up to 5 variations. Pass projectId so the copy uses the brand brief. Call this right after a generation completes.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "additionalInstructions": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "imageUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "messagingStyle": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "clickbait",
+              "professional",
+              "controversial",
+              "oneliners",
+              "ugc",
+              "directResponse",
+              "storytelling"
+            ],
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "variationCount": {
+            "default": 3,
+            "maximum": 5,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "imageUrl"
+        ],
+        "type": "object"
+      },
+      "name": "adCopyGeneration__generate"
+    },
+    {
+      "description": "List the ad-copy messaging styles (clickbait, professional, UGC, direct response, storytelling, ...) accepted by adCopyGeneration.generate.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "adCopyGeneration__getMessagingStyles"
+    },
+    {
+      "description": "Paginated list of the user's ad sets.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "page": {
+            "default": 1,
+            "minimum": 1,
+            "type": "number"
+          },
+          "perPage": {
+            "default": 12,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adSet__list"
+    },
+    {
+      "description": "Get an ad set by ID, including its general instructions.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__get"
+    },
+    {
+      "description": "[write] Create an ad set: a project + shared brief + ad type + quality + aspect ratio that many variations are generated from. Free — the credits are charged by adSet.generateBatch.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adCopyInstructions": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "adCopyMessagingStyle": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "clickbait",
+              "professional",
+              "controversial",
+              "oneliners",
+              "ugc",
+              "directResponse",
+              "storytelling"
+            ],
+            "type": "string"
+          },
+          "adType": {
+            "enum": [
+              "product_showcase",
+              "promotional",
+              "testimonial",
+              "lifestyle",
+              "comparison",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "additionalImageUrls": {
+            "default": [],
+            "items": {
+              "format": "uri",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "aspectRatio": {
+            "default": "1:1",
+            "enum": [
+              "1:1",
+              "4:5",
+              "9:16",
+              "16:9"
+            ],
+            "type": "string"
+          },
+          "generalInstructions": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "quality": {
+            "default": "low",
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "generalInstructions",
+          "projectId",
+          "adType"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__create"
+    },
+    {
+      "description": "[write] Update an ad set's brief, ad type, quality, aspect ratio, or reference images before generating another batch.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adCopyInstructions": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "adCopyMessagingStyle": {
+            "enum": [
+              "auto",
+              "clickbait",
+              "professional",
+              "controversial",
+              "oneliners",
+              "ugc",
+              "directResponse",
+              "storytelling"
+            ],
+            "type": "string"
+          },
+          "adType": {
+            "enum": [
+              "product_showcase",
+              "promotional",
+              "testimonial",
+              "lifestyle",
+              "comparison",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "additionalImageUrls": {
+            "items": {
+              "format": "uri",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "aspectRatio": {
+            "enum": [
+              "1:1",
+              "4:5",
+              "9:16",
+              "16:9"
+            ],
+            "type": "string"
+          },
+          "generalInstructions": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "quality": {
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__update"
+    },
+    {
+      "description": "List all ad generations belonging to an ad set.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "type": "string"
+          },
+          "filter": {
+            "default": "all",
+            "enum": [
+              "all",
+              "liked",
+              "downloaded",
+              "not_downloaded"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "minimum": 1,
+            "type": "number"
+          },
+          "perPage": {
+            "default": 50,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "adSetId"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__getGenerations"
+    },
+    {
+      "description": "[write] Generate a batch of ad variations from one ad set + per-variation instructions. Enqueues N background jobs and returns their generation IDs.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "type": "string"
+          },
+          "count": {
+            "default": "4",
+            "enum": [
+              "1",
+              "2",
+              "4",
+              "6"
+            ],
+            "type": "string"
+          },
+          "quality": {
+            "enum": [
+              "low",
+              "high",
+              "ultra"
+            ],
+            "type": "string"
+          },
+          "specificInstructions": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "adSetId"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__generateBatch"
+    },
+    {
+      "description": "[write] Ask the model for distinct creative directions (angles/hooks) for an ad set, to feed back in as per-variation instructions.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "adSetId"
+        ],
+        "type": "object"
+      },
+      "name": "adSet__suggestDirections"
+    },
+    {
+      "description": "[write] Queue UGC-style video ad generation for a project (script, voice, and render). Costs credits per video. Poll videoGeneration.getStatus.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "generateStartingFrame": {
+            "default": false,
+            "type": "boolean"
+          },
+          "projectId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "quality": {
+            "default": "low",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string"
+          },
+          "referenceImageUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "startingFrameUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "userInstructions": {
+            "type": "string"
+          },
+          "videoCount": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "name": "videoGeneration__start"
+    },
+    {
+      "description": "Get the status and output URL of a single video generation by ID. Poll until COMPLETED.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "name": "videoGeneration__getStatus"
+    },
+    {
+      "description": "Paginated list of the user's completed UGC video ads.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "filter": {
+            "default": "all",
+            "enum": [
+              "all",
+              "liked",
+              "downloaded"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "minimum": 1,
+            "type": "number"
+          },
+          "perPage": {
+            "default": 12,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "videoSetId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "videoGeneration__list"
+    },
+    {
+      "description": "List the user's currently-rendering video generations.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "videoGeneration__listPending"
+    },
+    {
+      "description": "Resolve a brand name to its Facebook advertiser Page (id, name, category, follower counts). Step 1 of looking up any brand's live ads.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "query": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__searchCompanies"
+    },
+    {
+      "description": "Get the ads a Facebook Page is currently running, from the Meta Ad Library, by pageId (from adResearch.searchCompanies). Works for any advertiser, not just the user's competitors.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "country": {
+            "default": "ALL",
+            "maxLength": 8,
+            "minLength": 2,
+            "type": "string"
+          },
+          "cursor": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "type": "string"
+          },
+          "pageId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pageId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__getCompanyAds"
+    },
+    {
+      "description": "[write] Add competitors to a project by name (optionally with website URL) and kick off ad scraping for them.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "competitors": {
+            "items": {
+              "properties": {
+                "name": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": {
+                  "default": "DIRECT",
+                  "enum": [
+                    "DIRECT",
+                    "INDIRECT",
+                    "ASPIRATIONAL"
+                  ],
+                  "type": "string"
+                },
+                "websiteUrl": {
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "scrapeAds": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "competitors"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__addCompetitors"
+    },
+    {
+      "description": "[write] Re-scrape one competitor's live Facebook ads into the project. Returns a research job — poll adResearch.pollStatus.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "competitorId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "competitorId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__scrapeCompetitor"
+    },
+    {
+      "description": "Preview the ads already scraped for a single competitor.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "competitorId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "competitorId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__getCompetitorPreview"
+    },
+    {
+      "description": "Browse the competitor ads scraped into a project, with sorting (relevance, longest_running, newest) and media-type/keyword filters. This is the raw material for remixes.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "competitorId": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 30,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "number"
+          },
+          "mediaType": {
+            "enum": [
+              "IMAGE",
+              "VIDEO",
+              "CAROUSEL",
+              "ALL"
+            ],
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "type": "number"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "searchTerm": {
+            "type": "string"
+          },
+          "showIrrelevant": {
+            "default": false,
+            "type": "boolean"
+          },
+          "sortBy": {
+            "default": "relevance",
+            "enum": [
+              "relevance",
+              "newest",
+              "oldest",
+              "longest_running",
+              "popularity",
+              "recently_added"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__getScrapedAds"
+    },
+    {
+      "description": "Get one scraped competitor ad in full: creative URLs, ad text, headline, run dates, and platform placements.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "scrapedAdId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "scrapedAdId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__getAdDetails"
+    },
+    {
+      "description": "[write] Save a scraped competitor ad to a project as inspiration. The returned inspiration ID can be passed to adGeneration.create as referenceInspirationId to remix it.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "action": {
+            "default": "TAKE_INSPIRATION",
+            "enum": [
+              "COPY_DESIGN",
+              "TAKE_INSPIRATION",
+              "AI_GENERATE"
+            ],
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "scrapedAdId": {
+            "type": "string"
+          },
+          "userNotes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "scrapedAdId",
+          "projectId"
+        ],
+        "type": "object"
+      },
+      "name": "adResearch__saveInspiration"
+    },
+    {
+      "description": "List the competitor ads saved as inspiration for a project, with their inspiration IDs.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "number"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "type": "number"
+          },
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "adResearch__getSavedInspirations"
+    },
+    {
+      "description": "List the user's connected Facebook ad accounts and Pages, with their cached identity info.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object"
+      },
+      "name": "facebookConnection__list"
+    },
+    {
+      "description": "List Meta campaigns for a specific connected ad account (cache-first; refresh from Meta if cold).",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "refresh": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "adAccountId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookUpload__getCampaigns"
+    },
+    {
+      "description": "List Meta ad sets under a given campaign.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "fbCampaignId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "refresh": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "adAccountId",
+          "fbCampaignId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookUpload__getAdSets"
+    },
+    {
+      "description": "[write] Validate an ad-creative + ad-account pair for Meta upload (image dimensions, copy length, etc.) without uploading.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adGenerationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "copy": {
+            "properties": {
+              "callToAction": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "headline": {
+                "type": "string"
+              },
+              "primaryText": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "primaryText"
+            ],
+            "type": "object"
+          },
+          "declareAsAiGenerated": {
+            "type": "boolean"
+          },
+          "destinationUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "targetAdSetId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "adGenerationId",
+          "copy",
+          "destinationUrl",
+          "targetAdSetId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookUpload__runPreflight"
+    },
+    {
+      "description": "[DANGER: live action] Enqueue an upload of an AdMakeAI-generated ad creative to a Meta ad account / campaign / ad set. Creates a real ad on Meta. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adGenerationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "confirmedReadinessDismissals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "copy": {
+            "properties": {
+              "callToAction": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "headline": {
+                "type": "string"
+              },
+              "primaryText": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "primaryText",
+              "callToAction"
+            ],
+            "type": "object"
+          },
+          "destinationUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "targetAdSetId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetInstagramActorId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetPageId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "templateOverrides": {
+            "properties": {
+              "account": {
+                "properties": {
+                  "defaultCurrency": {
+                    "type": "string"
+                  },
+                  "defaultTimezoneId": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "ad": {
+                "properties": {
+                  "callToAction": {
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "properties": {
+                          "link": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "link"
+                        ],
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "instagramActorId": {
+                    "type": "string"
+                  },
+                  "pageId": {
+                    "type": "string"
+                  },
+                  "urlTagsTemplate": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "adSet": {
+                "properties": {
+                  "attributionSpec": {
+                    "items": {
+                      "properties": {
+                        "eventType": {
+                          "enum": [
+                            "CLICK_THROUGH",
+                            "VIEW_THROUGH"
+                          ],
+                          "type": "string"
+                        },
+                        "windowDays": {
+                          "anyOf": [
+                            {
+                              "const": 1,
+                              "type": "number"
+                            },
+                            {
+                              "const": 7,
+                              "type": "number"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "eventType",
+                        "windowDays"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "bidAmountCents": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "bidConstraints": {
+                    "properties": {
+                      "roasAverageFloor": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "billingEvent": {
+                    "type": "string"
+                  },
+                  "destinationType": {
+                    "type": "string"
+                  },
+                  "frequencyControl": {
+                    "properties": {
+                      "event": {
+                        "const": "IMPRESSIONS",
+                        "type": "string"
+                      },
+                      "intervalDays": {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "type": "integer"
+                      },
+                      "maxFrequency": {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "event",
+                      "intervalDays",
+                      "maxFrequency"
+                    ],
+                    "type": "object"
+                  },
+                  "optimizationGoal": {
+                    "type": "string"
+                  },
+                  "promotedObject": {
+                    "properties": {
+                      "applicationId": {
+                        "type": "string"
+                      },
+                      "customEventType": {
+                        "type": "string"
+                      },
+                      "pageId": {
+                        "type": "string"
+                      },
+                      "pixelId": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "schedule": {
+                    "properties": {
+                      "daypartingHours": {
+                        "items": {
+                          "properties": {
+                            "days": {
+                              "items": {
+                                "maximum": 6,
+                                "minimum": 0,
+                                "type": "integer"
+                              },
+                              "type": "array"
+                            },
+                            "endMinute": {
+                              "maximum": 1440,
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "startMinute": {
+                              "maximum": 1440,
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "days",
+                            "startMinute",
+                            "endMinute"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "endTime": {
+                        "type": "string"
+                      },
+                      "startTime": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "targeting": {
+                    "properties": {
+                      "ageMax": {
+                        "maximum": 65,
+                        "minimum": 13,
+                        "type": "integer"
+                      },
+                      "ageMin": {
+                        "maximum": 65,
+                        "minimum": 13,
+                        "type": "integer"
+                      },
+                      "audienceNetworkPositions": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "customAudiences": {
+                        "items": {
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "devicePlatforms": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "excludedCustomAudiences": {
+                        "items": {
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "excludedGeoLocations": {},
+                      "exclusions": {},
+                      "facebookPositions": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "flexibleSpec": {
+                        "items": {},
+                        "type": "array"
+                      },
+                      "genders": {
+                        "items": {
+                          "maximum": 9007199254740991,
+                          "minimum": -9007199254740991,
+                          "type": "integer"
+                        },
+                        "type": "array"
+                      },
+                      "geoLocations": {
+                        "properties": {
+                          "cities": {
+                            "items": {},
+                            "type": "array"
+                          },
+                          "countries": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "regions": {
+                            "items": {},
+                            "type": "array"
+                          },
+                          "zips": {
+                            "items": {},
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "instagramPositions": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "locales": {
+                        "items": {
+                          "maximum": 9007199254740991,
+                          "minimum": -9007199254740991,
+                          "type": "integer"
+                        },
+                        "type": "array"
+                      },
+                      "messengerPositions": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "publisherPlatforms": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              "advantageDisables": {
+                "properties": {
+                  "audience": {
+                    "type": "boolean"
+                  },
+                  "campaignBudget": {
+                    "type": "boolean"
+                  },
+                  "creativeImageUncrop": {
+                    "type": "boolean"
+                  },
+                  "creativeMusic": {
+                    "type": "boolean"
+                  },
+                  "creativeStandardEnhancements": {
+                    "type": "boolean"
+                  },
+                  "creativeTextGeneration": {
+                    "type": "boolean"
+                  },
+                  "detailedTargeting": {
+                    "type": "boolean"
+                  },
+                  "lookalikeExpansion": {
+                    "type": "boolean"
+                  },
+                  "multiAdvertiser": {
+                    "type": "boolean"
+                  },
+                  "placements": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "campaign": {
+                "properties": {
+                  "bidStrategy": {
+                    "enum": [
+                      "LOWEST_COST_WITHOUT_CAP",
+                      "LOWEST_COST_WITH_BID_CAP",
+                      "COST_CAP",
+                      "LOWEST_COST_WITH_MIN_ROAS"
+                    ],
+                    "type": "string"
+                  },
+                  "buyingType": {
+                    "enum": [
+                      "AUCTION",
+                      "RESERVED"
+                    ],
+                    "type": "string"
+                  },
+                  "campaignOptimizationType": {
+                    "enum": [
+                      "NONE",
+                      "ICO_ONLY"
+                    ],
+                    "type": "string"
+                  },
+                  "dailyBudgetCents": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "lifetimeBudgetCents": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "objective": {
+                    "enum": [
+                      "OUTCOME_AWARENESS",
+                      "OUTCOME_TRAFFIC",
+                      "OUTCOME_ENGAGEMENT",
+                      "OUTCOME_LEADS",
+                      "OUTCOME_APP_PROMOTION",
+                      "OUTCOME_SALES"
+                    ],
+                    "type": "string"
+                  },
+                  "specialAdCategories": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "specialAdCategoryCountry": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "spendCapCents": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "preflightOverrides": {
+                "properties": {
+                  "declareAsAiGenerated": {
+                    "type": "boolean"
+                  },
+                  "skipPersonalAttributesCheck": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "adGenerationId",
+          "targetAdSetId",
+          "targetPageId",
+          "copy",
+          "destinationUrl"
+        ],
+        "type": "object"
+      },
+      "name": "facebookUpload__request"
+    },
+    {
+      "description": "List previously-uploaded ads, filterable by ad account and state.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "adGenerationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "search": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "uploadState": {
+            "enum": [
+              "QUEUED",
+              "PREFLIGHT_FAILED",
+              "READINESS_FAILED",
+              "IMAGE_UPLOADING",
+              "IMAGE_UPLOAD_FAILED",
+              "CREATIVE_CREATING",
+              "CREATIVE_FAILED",
+              "AD_CREATING",
+              "AD_CREATE_FAILED",
+              "UPLOADED_PAUSED",
+              "META_REJECTED",
+              "USER_DELETED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "facebookUpload__list"
+    },
+    {
+      "description": "Get the upload state and Meta IDs of a single uploaded ad.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "uploadedAdId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadedAdId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookUpload__get"
+    },
+    {
+      "description": "Resolve previously-uploaded Meta ads into reusable creative assets for a campaign draft.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "platformAdIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "zernioAdIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adAccountId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookCampaignDraft__sourceAssets"
+    },
+    {
+      "description": "Read a saved agent-created Facebook campaign draft by draft ID before pushing.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "draftId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "draftId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookCampaignDraft__getAgentDraft"
+    },
+    {
+      "description": "[DANGER: live action] Push a saved agent-created Facebook campaign draft to Meta as draft campaigns/ad sets/ads. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "draftId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "draftId"
+        ],
+        "type": "object"
+      },
+      "name": "facebookCampaignDraft__pushAgentDraft"
+    },
+    {
+      "description": "[DANGER: live action] Create Meta draft campaigns/ad sets/ads from explicit campaign data, ad sets, ad copy, and image URLs. Supports raw externally-hosted image URLs. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "adSets": {
+            "items": {
+              "properties": {
+                "ads": {
+                  "items": {
+                    "properties": {
+                      "callToAction": {
+                        "enum": [
+                          "LEARN_MORE",
+                          "SHOP_NOW",
+                          "SIGN_UP",
+                          "BOOK_TRAVEL",
+                          "CONTACT_US",
+                          "DOWNLOAD",
+                          "GET_OFFER",
+                          "GET_QUOTE",
+                          "SUBSCRIBE",
+                          "WATCH_MORE",
+                          "REGISTER",
+                          "JOIN",
+                          "ATTEND",
+                          "REQUEST_DEMO",
+                          "VIEW_QUOTE",
+                          "APPLY",
+                          "SEE_MORE",
+                          "BUY_NOW"
+                        ],
+                        "type": "string"
+                      },
+                      "descriptions": {
+                        "items": {
+                          "maxLength": 255,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 5,
+                        "type": "array"
+                      },
+                      "headlines": {
+                        "items": {
+                          "maxLength": 255,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 5,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "id": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "imageUrls": {
+                        "items": {
+                          "format": "uri",
+                          "type": "string"
+                        },
+                        "maxItems": 10,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "linkUrl": {
+                        "format": "uri",
+                        "type": "string"
+                      },
+                      "name": {
+                        "maxLength": 255,
+                        "type": "string"
+                      },
+                      "primaryTexts": {
+                        "items": {
+                          "maxLength": 1000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 5,
+                        "minItems": 1,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "headlines",
+                      "primaryTexts",
+                      "linkUrl",
+                      "callToAction",
+                      "imageUrls"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 50,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "advantageAudience": {
+                  "anyOf": [
+                    {
+                      "const": 0,
+                      "type": "number"
+                    },
+                    {
+                      "const": 1,
+                      "type": "number"
+                    }
+                  ]
+                },
+                "ageMax": {
+                  "maximum": 65,
+                  "minimum": 13,
+                  "type": "integer"
+                },
+                "ageMin": {
+                  "maximum": 65,
+                  "minimum": 13,
+                  "type": "integer"
+                },
+                "attributionSpec": {
+                  "items": {
+                    "properties": {
+                      "eventType": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "windowDays": {
+                        "maximum": 28,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "eventType",
+                      "windowDays"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 3,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "audienceId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "bidAmount": {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                "bidStrategy": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "budgetAmount": {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                "budgetType": {
+                  "enum": [
+                    "daily",
+                    "lifetime"
+                  ],
+                  "type": "string"
+                },
+                "cities": {
+                  "items": {
+                    "additionalProperties": {},
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                "countries": {
+                  "items": {
+                    "pattern": "^[A-Z]{2}$",
+                    "type": "string"
+                  },
+                  "maxItems": 25,
+                  "type": "array"
+                },
+                "dsaBeneficiary": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "dsaPayor": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "endDate": {
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                  "type": "string"
+                },
+                "gender": {
+                  "enum": [
+                    "all",
+                    "male",
+                    "female"
+                  ],
+                  "type": "string"
+                },
+                "goal": {
+                  "enum": [
+                    "engagement",
+                    "traffic",
+                    "awareness",
+                    "video_views",
+                    "lead_generation",
+                    "conversions",
+                    "app_promotion"
+                  ],
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "interests": {
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "name": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                "name": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "promotedObject": {
+                  "properties": {
+                    "applicationId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "customConversionId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "customEventType": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "objectStoreUrl": {
+                      "format": "uri",
+                      "type": "string"
+                    },
+                    "pageId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "pixelId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "productCatalogId": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "productSetId": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "regions": {
+                  "items": {
+                    "additionalProperties": {},
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "maxItems": 50,
+                  "type": "array"
+                },
+                "roasAverageFloor": {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "ads"
+              ],
+              "type": "object"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          },
+          "campaign": {
+            "properties": {
+              "advantageAudience": {
+                "anyOf": [
+                  {
+                    "const": 0,
+                    "type": "number"
+                  },
+                  {
+                    "const": 1,
+                    "type": "number"
+                  }
+                ]
+              },
+              "ageMax": {
+                "maximum": 65,
+                "minimum": 13,
+                "type": "integer"
+              },
+              "ageMin": {
+                "maximum": 65,
+                "minimum": 13,
+                "type": "integer"
+              },
+              "attributionSpec": {
+                "items": {
+                  "properties": {
+                    "eventType": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "windowDays": {
+                      "maximum": 28,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "eventType",
+                    "windowDays"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 3,
+                "minItems": 1,
+                "type": "array"
+              },
+              "audienceId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "bidAmount": {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              "bidStrategy": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "budgetAmount": {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              },
+              "budgetType": {
+                "enum": [
+                  "daily",
+                  "lifetime"
+                ],
+                "type": "string"
+              },
+              "cities": {
+                "items": {
+                  "additionalProperties": {},
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              "countries": {
+                "items": {
+                  "pattern": "^[A-Z]{2}$",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "type": "array"
+              },
+              "currency": {
+                "maxLength": 8,
+                "minLength": 3,
+                "type": "string"
+              },
+              "dsaBeneficiary": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "dsaPayor": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "endDate": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "type": "string"
+              },
+              "gender": {
+                "enum": [
+                  "all",
+                  "male",
+                  "female"
+                ],
+                "type": "string"
+              },
+              "goal": {
+                "enum": [
+                  "engagement",
+                  "traffic",
+                  "awareness",
+                  "video_views",
+                  "lead_generation",
+                  "conversions",
+                  "app_promotion"
+                ],
+                "type": "string"
+              },
+              "interests": {
+                "items": {
+                  "properties": {
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "name": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              "name": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              "promotedObject": {
+                "properties": {
+                  "applicationId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "customConversionId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "customEventType": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "objectStoreUrl": {
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "pageId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "pixelId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "productCatalogId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "productSetId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "regions": {
+                "items": {
+                  "additionalProperties": {},
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              "roasAverageFloor": {
+                "exclusiveMinimum": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "goal"
+            ],
+            "type": "object"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "pageId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adAccountId",
+          "campaign",
+          "adSets"
+        ],
+        "type": "object"
+      },
+      "name": "facebookCampaignDraft__pushDraftCampaign"
+    },
+    {
+      "description": "Get total ad-account spend and performance (spend, impressions, clicks, CTR, CPC, conversions, ROAS) for a date range like last_30_days or last_month, with previous-period comparison.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "compareToPrevious": {
+            "type": "boolean"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "datePreset": {
+            "enum": [
+              "last_7_days",
+              "last_14_days",
+              "last_30_days",
+              "last_90_days",
+              "this_month",
+              "last_month"
+            ],
+            "type": "string"
+          },
+          "fromDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "toDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__accountOverview"
+    },
+    {
+      "description": "Get the campaign → ad-set → ad hierarchy for an ad account.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "fromDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "limit": {
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "type": "integer"
+          },
+          "page": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "sort": {
+            "enum": [
+              "newest",
+              "oldest",
+              "spend_desc",
+              "spend_asc"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused",
+              "pending_review",
+              "rejected",
+              "completed",
+              "cancelled",
+              "error"
+            ],
+            "type": "string"
+          },
+          "toDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__tree"
+    },
+    {
+      "description": "Get time-series performance metrics for an ad account.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "fromDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "toDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__timeline"
+    },
+    {
+      "description": "List Meta campaigns with rolled-up performance metrics.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "fromDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "limit": {
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "type": "integer"
+          },
+          "page": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "sort": {
+            "enum": [
+              "newest",
+              "oldest",
+              "spend_desc",
+              "spend_asc"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused",
+              "pending_review",
+              "rejected",
+              "completed",
+              "cancelled",
+              "error"
+            ],
+            "type": "string"
+          },
+          "toDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__listCampaigns"
+    },
+    {
+      "description": "List Meta ads under a campaign or ad set with performance metrics.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adAccountId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "campaignId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "type": "integer"
+          },
+          "page": {
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "sort": {
+            "enum": [
+              "newest",
+              "oldest",
+              "spend_desc",
+              "spend_asc"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused",
+              "pending_review",
+              "rejected",
+              "completed",
+              "cancelled",
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__listAds"
+    },
+    {
+      "description": "Get a single Meta ad's metadata and creative.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__getAd"
+    },
+    {
+      "description": "Get day-by-day analytics (spend, CTR, CPC, conversions) for a single Meta ad.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "breakdowns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "fromDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "toDate": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__getAdAnalytics"
+    },
+    {
+      "description": "List public comments on the boosted post behind a Meta ad (Facebook or Instagram placement).",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "type": "integer"
+          },
+          "placement": {
+            "enum": [
+              "facebook",
+              "instagram"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__getAdComments"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta ad status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__pauseAd"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta ad status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__resumeAd"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta campaign status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "campaignId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "campaignId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__pauseCampaign"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta campaign status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "campaignId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "campaignId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__resumeCampaign"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta ad set status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adSetId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__pauseAdSet"
+    },
+    {
+      "description": "[DANGER: live action] Currently disabled: Meta ad set status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "adSetId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "connectionId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionId",
+          "adSetId"
+        ],
+        "type": "object"
+      },
+      "name": "zernioAnalytics__resumeAdSet"
+    }
+  ],
+  "version": "1.0.0"
+}
