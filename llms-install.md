@@ -10,11 +10,11 @@ AdMakeAI's MCP server is hosted. There is nothing to clone, install, build or ru
 
 ## Before you start
 
-The user needs an AdMakeAI account. Signup is free at https://admakeai.com/register (30 free credits, no card). Ask the user to sign up themselves; don't create an account for them.
+The user needs an AdMakeAI account. Signup is free at https://admakeai.com/register (30 free credits, 8 in some countries; no card). Ask the user to sign up themselves; don't create an account for them.
 
 ## Option A: API key
 
-1. Ask the user to create an API key at https://admakeai.com/dashboard/integrations/api and paste it to you. Keys start with `amai_live_`. Never guess or invent a key.
+1. Ask the user to create an API key in the AdMakeAI dashboard under **API & Agents → API keys** (https://admakeai.com/dashboard/integrations/api) and paste it to you. Keys start with `amai_live_`. Never guess or invent a key.
 2. Add this to the MCP settings file (`cline_mcp_settings.json` in Cline), with the user's key:
 
 ```json
@@ -59,8 +59,8 @@ The consent page grants three scopes, and tools outside the granted scopes are l
 | Scope | Covers |
 | --- | --- |
 | `mcp:read` | Profile, credits, projects, generated ads, competitor research results, Meta ad performance |
-| `mcp:write` | Image and video generation, ad copy, ad sets, uploads, competitor scrapes, campaign drafts (spends credits) |
-| `mcp:publish` | Creating real ads and draft campaigns in the user's connected Meta ad account |
+| `mcp:write` | Image and video generation, ad copy, ad sets, uploads, competitor tracking (spends credits) |
+| `mcp:publish` | The three tools that create ads or draft campaigns in the user's connected Meta ad account |
 
 Claude and ChatGPT custom connectors use the same URL with OAuth.
 
@@ -77,7 +77,7 @@ Call `user__getCredits`. It returns the account's credit balance. A `401` means 
 - Start with `adResearch__listProjects`. Every generation belongs to a project (a brand). If the user has several, pick the one their request is about, or ask.
 - If the list is empty, the account is new: ask the user for their brand's website (never guess it) and call `project__createFirst`. It's free and only works for the first project; later projects are made at https://admakeai.com/dashboard.
 - Generations are queued. Poll `adGeneration__getById` or `videoGeneration__getStatus` until the status is `COMPLETED`.
-- A standard image ad costs 2 credits (8 high quality, 20 ultra); a UGC video 5, 15 or 50 credits. Video ads and the Facebook tools need a paid plan (https://admakeai.com/pricing), and the Facebook tools need a Facebook account connected at https://admakeai.com/dashboard/integrations/facebook.
+- A standard image ad costs 2 credits (8 high quality, 20 ultra); a UGC video 5, 15 or 50 credits. Plans start at $39/mo. Video ads and the Meta tools need a paid plan (https://admakeai.com/pricing), and the Meta tools need a Facebook ad account connected at https://admakeai.com/dashboard/integrations/facebook.
 
 ## Tools (60)
 
@@ -90,11 +90,11 @@ Call `user__getCredits`. It returns the account's credit balance. A `401` means 
 | Ad copy | `adCopyGeneration__generate`, `adCopyGeneration__getMessagingStyles` |
 | Ad sets | `adSet__list`, `adSet__get`, `adSet__create`, `adSet__update`, `adSet__getGenerations`, `adSet__generateBatch`, `adSet__suggestDirections` |
 | UGC video ads | `videoGeneration__start`, `videoGeneration__getStatus`, `videoGeneration__list`, `videoGeneration__listPending` |
-| Competitor research (Meta Ad Library) | `adResearch__searchCompanies`, `adResearch__getCompanyAds`, `adResearch__addCompetitors`, `adResearch__scrapeCompetitor`, `adResearch__getCompetitorPreview`, `adResearch__getScrapedAds`, `adResearch__getAdDetails`, `adResearch__saveInspiration`, `adResearch__getSavedInspirations` |
-| Meta uploads and drafts | `facebookConnection__list`, `facebookUpload__getCampaigns`, `facebookUpload__getAdSets`, `facebookUpload__runPreflight`, `facebookUpload__request`, `facebookUpload__list`, `facebookUpload__get`, `facebookCampaignDraft__sourceAssets`, `facebookCampaignDraft__getAgentDraft`, `facebookCampaignDraft__pushAgentDraft`, `facebookCampaignDraft__pushDraftCampaign` |
+| Competitor research, from the Meta Ad Library | `adResearch__searchCompanies`, `adResearch__getCompanyAds`, `adResearch__addCompetitors`, `adResearch__scrapeCompetitor`, `adResearch__getCompetitorPreview`, `adResearch__getScrapedAds`, `adResearch__getAdDetails`, `adResearch__saveInspiration`, `adResearch__getSavedInspirations` |
+| Meta uploads and campaign drafts | `facebookConnection__list`, `facebookUpload__getCampaigns`, `facebookUpload__getAdSets`, `facebookUpload__runPreflight`, `facebookUpload__request`, `facebookUpload__list`, `facebookUpload__get`, `facebookCampaignDraft__sourceAssets`, `facebookCampaignDraft__getAgentDraft`, `facebookCampaignDraft__pushAgentDraft`, `facebookCampaignDraft__pushDraftCampaign` |
 | Meta ad performance | `zernioAnalytics__accountOverview`, `zernioAnalytics__tree`, `zernioAnalytics__timeline`, `zernioAnalytics__listCampaigns`, `zernioAnalytics__listAds`, `zernioAnalytics__getAd`, `zernioAnalytics__getAdAnalytics`, `zernioAnalytics__getAdComments` |
 
-The live ones are `facebookUpload__request`, `facebookCampaignDraft__pushAgentDraft` and `facebookCampaignDraft__pushDraftCampaign`. Pausing, resuming and launching ads is done in Meta Ads Manager, not through this server.
+The live ones are `facebookUpload__request`, `facebookCampaignDraft__pushAgentDraft` and `facebookCampaignDraft__pushDraftCampaign`. Uploads and drafts land paused; launching, pausing and resuming ads stay in Meta Ads Manager, not this server. What each tool does: [README.md](README.md#tools-60).
 
 ## Links
 
