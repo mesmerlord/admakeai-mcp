@@ -3,7 +3,7 @@
   "authorUrl": "https://github.com/mesmerlord",
   "category": "media-generate",
   "cloudEndpoint": "https://admakeai.com/api/mcp",
-  "description": "Generate Meta ad creatives and copy, research a competitor's live Facebook ads, and launch or pause real campaigns. Remote MCP server with OAuth 2.1, no API key.",
+  "description": "Design Facebook and Instagram ad images, ad copy and UGC video ads, research any brand's live ads in the Meta Ad Library, read Meta ad performance, and upload ads or draft campaigns (paused) to a connected Meta ad account. 60 tools. Remote MCP server: an AdMakeAI API key as x-api-key or Authorization: Bearer, or OAuth 2.1 sign-in for connectors.",
   "homepage": "https://admakeai.com",
   "icon": "📣",
   "identifier": "mesmerlord-admakeai-mcp",
@@ -36,7 +36,7 @@
       "name": "user__getCredits"
     },
     {
-      "description": "List the user's projects (brands). ALWAYS call this before generating anything: every generation needs a projectId, and the project's brand brief is what the render is built from. Pick the project the user's request is about; if more than one could fit, ask which. Projects cannot be created through this API — if the user has none, tell them to set one up at https://admakeai.com/dashboard.",
+      "description": "List the user's projects (brands). ALWAYS call this before generating anything: every generation needs a projectId, and the project's brand brief is what the render is built from. Pick the project the user's request is about; if more than one could fit, ask which. If the list is empty, this is a new account: ask the user for their brand's website (never guess it) and call project.createFirst, then carry on with their request.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -53,6 +53,23 @@
         "type": "object"
       },
       "name": "adResearch__listProjects"
+    },
+    {
+      "description": "[write] Create the account's FIRST project from the brand's website URL: reads the site and fills in the brand brief and logo in about 10-15 seconds. Free. Only for accounts with no projects (adResearch.listProjects returned an empty list); otherwise it fails, and further projects are made at https://admakeai.com/dashboard. Ask the user for the URL; never guess it.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "websiteUrl": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "websiteUrl"
+        ],
+        "type": "object"
+      },
+      "name": "project__createFirst"
     },
     {
       "description": "Get one project with its full brand brief, competitors, research jobs, and scraped-ad counts. Read this before generating so the creative matches the brand.",
@@ -195,7 +212,7 @@
       "name": "upload__getUserImages"
     },
     {
-      "description": "[write] Queue a FINISHED AD image render. Required: projectId. Call adResearch.listProjects first and pick the project the request is about, or ask the user when it is ambiguous; never guess an id. Also required: prompt, a creative brief rather than a finished image prompt. How the prompt is used: a creative-director model rewrites it into the real image prompt using the project's brand brief, and that rewrite always adds a specific headline, a subline, a CTA button, and the project logo when the project has one. Negative instructions in the prompt ('no text', 'no logo', 'nothing but the product') cannot suppress those; use adGeneration.generateImage when the caller wants exact or no text. Optional: adType, aspectRatio, quality (low/high/ultra), referenceImageUrls, inputImageId (from upload.uploadImageBase64), referenceAdId or referenceInspirationId to remix an existing ad. Costs credits. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED.",
+      "description": "[write] Queue a FINISHED AD image render. Required: projectId. Call adResearch.listProjects first and pick the project the request is about, or ask the user when it is ambiguous; never guess an id. Also required: prompt, a creative brief rather than a finished image prompt. How the prompt is used: a creative-director model rewrites it into the real image prompt using the project's brand brief, and that rewrite always adds a specific headline, a subline, a CTA button, and the project logo when the project has one. Negative instructions in the prompt ('no text', 'no logo', 'nothing but the product') cannot suppress those; use adGeneration.generateImage when the caller wants exact or no text. Optional: adType, aspectRatio, quality (low/high/ultra), referenceImageUrls, inputImageId (from upload.uploadImageBase64), referenceAdId or referenceInspirationId to remix an existing ad. Costs credits. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED. Tier names users see: low = Fast, high = Sharp, ultra = Max.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -267,7 +284,7 @@
       "name": "adGeneration__create"
     },
     {
-      "description": "[write] Queue an image render from a VERBATIM prompt. The prompt goes to the image model exactly as written: no creative-director rewrite, no brand brief, no added headline, subline or CTA, and no project logo. The image contains only what the prompt stipulates. Use this when the caller wants only specific stipulated text, forbids text/logos/CTAs, or wants raw scene, product, or photography imagery rather than a finished ad; use adGeneration.create for finished ads. Required: projectId (credit scoping only, nothing from it enters the prompt) and prompt. Optional: aspectRatio, quality (low/high/ultra), referenceImageUrls and inputImageId for image-to-image. Costs the same credits as adGeneration.create. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED.",
+      "description": "[write] Queue an image render from a VERBATIM prompt. The prompt goes to the image model exactly as written: no creative-director rewrite, no brand brief, no added headline, subline or CTA, and no project logo. The image contains only what the prompt stipulates. Use this when the caller wants only specific stipulated text, forbids text/logos/CTAs, or wants raw scene, product, or photography imagery rather than a finished ad; use adGeneration.create for finished ads. Required: projectId (credit scoping only, nothing from it enters the prompt) and prompt. Optional: aspectRatio, quality (low/high/ultra), referenceImageUrls and inputImageId for image-to-image. Costs the same credits as adGeneration.create. Returns a generation ID. Poll adGeneration.getById until status is COMPLETED. Tier names users see: low = Fast, high = Sharp, ultra = Max.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -562,7 +579,7 @@
       "name": "adSet__get"
     },
     {
-      "description": "[write] Create an ad set: a project + shared brief + ad type + quality + aspect ratio that many variations are generated from. Free — the credits are charged by adSet.generateBatch.",
+      "description": "[write] Create an ad set: a project + shared brief + ad type + quality + aspect ratio that many variations are generated from. Free — the credits are charged by adSet.generateBatch. Tier names users see: low = Fast, high = Sharp, ultra = Max.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -710,9 +727,6 @@
           "name": {
             "type": "string"
           },
-          "projectId": {
-            "type": "string"
-          },
           "quality": {
             "enum": [
               "low",
@@ -780,7 +794,9 @@
               "1",
               "2",
               "4",
-              "6"
+              "6",
+              "8",
+              "15"
             ],
             "type": "string"
           },
@@ -810,6 +826,14 @@
         "properties": {
           "adSetId": {
             "type": "string"
+          },
+          "exclude": {
+            "items": {
+              "maxLength": 600,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "type": "array"
           }
         },
         "required": [
@@ -820,10 +844,17 @@
       "name": "adSet__suggestDirections"
     },
     {
-      "description": "[write] Queue UGC-style video ad generation for a project (script, voice, and render). Costs credits per video. Poll videoGeneration.getStatus.",
+      "description": "[write] Queue UGC-style video ad generation for a project (script, voice, and render). Costs credits per video by quality; optional engine picks the model family (hosted = Gemini/FLUX.3 on fal, minimax = self-hosted MiniMax H3; default hosted). Poll videoGeneration.getStatus. Tier names users see: low = Fast, medium = Sharp, high = Max. Video Sharp is medium, not high.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
+          "engine": {
+            "enum": [
+              "hosted",
+              "minimax"
+            ],
+            "type": "string"
+          },
           "generateStartingFrame": {
             "default": false,
             "type": "boolean"
@@ -1246,7 +1277,7 @@
       "name": "facebookUpload__getAdSets"
     },
     {
-      "description": "[write] Validate an ad-creative + ad-account pair for Meta upload (image dimensions, copy length, etc.) without uploading.",
+      "description": "Validate an ad-creative + ad-account pair for Meta upload (image dimensions, copy length, etc.) without uploading.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -1298,7 +1329,7 @@
       "name": "facebookUpload__runPreflight"
     },
     {
-      "description": "[DANGER: live action] Enqueue an upload of an AdMakeAI-generated ad creative to a Meta ad account / campaign / ad set. Creates a real ad on Meta. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "description": "[DANGER: live action] Enqueue an upload of an AdMakeAI-generated ad creative to a Meta ad account / campaign / ad set. Creates a real ad on Meta. Always confirm with the user before calling.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -1808,6 +1839,16 @@
             "minLength": 1,
             "type": "string"
           },
+          "cursor": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "default": 24,
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "type": "integer"
+          },
           "search": {
             "maxLength": 200,
             "minLength": 1,
@@ -1908,7 +1949,7 @@
       "name": "facebookCampaignDraft__getAgentDraft"
     },
     {
-      "description": "[DANGER: live action] Push a saved agent-created Facebook campaign draft to Meta as draft campaigns/ad sets/ads. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "description": "[DANGER: live action] Push a saved agent-created Facebook campaign draft to Meta as draft campaigns/ad sets/ads. Always confirm with the user before calling.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -1925,7 +1966,7 @@
       "name": "facebookCampaignDraft__pushAgentDraft"
     },
     {
-      "description": "[DANGER: live action] Create Meta draft campaigns/ad sets/ads from explicit campaign data, ad sets, ad copy, and image URLs. Supports raw externally-hosted image URLs. ALWAYS confirm with the user before calling. Always confirm with the user before calling.",
+      "description": "[DANGER: live action] Create Meta draft campaigns/ad sets/ads from explicit campaign data, ad sets, ad copy, and image URLs. Supports raw externally-hosted image URLs. Always confirm with the user before calling.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
@@ -1986,12 +2027,12 @@
                         "type": "string"
                       },
                       "imageUrls": {
+                        "default": [],
                         "items": {
                           "format": "uri",
                           "type": "string"
                         },
                         "maxItems": 10,
-                        "minItems": 1,
                         "type": "array"
                       },
                       "linkUrl": {
@@ -2011,6 +2052,22 @@
                         "maxItems": 5,
                         "minItems": 1,
                         "type": "array"
+                      },
+                      "video": {
+                        "properties": {
+                          "thumbnailUrl": {
+                            "format": "uri",
+                            "type": "string"
+                          },
+                          "url": {
+                            "format": "uri",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "url"
+                        ],
+                        "type": "object"
                       }
                     },
                     "required": [
@@ -2018,8 +2075,7 @@
                       "headlines",
                       "primaryTexts",
                       "linkUrl",
-                      "callToAction",
-                      "imageUrls"
+                      "callToAction"
                     ],
                     "type": "object"
                   },
@@ -2818,138 +2874,6 @@
         "type": "object"
       },
       "name": "zernioAnalytics__getAdComments"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta ad status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "adId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "adId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__pauseAd"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta ad status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "adId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "adId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__resumeAd"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta campaign status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "campaignId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "campaignId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__pauseCampaign"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta campaign status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "campaignId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "campaignId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__resumeCampaign"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta ad set status changes fail closed in AdMakeAI. Launch/pause from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "adSetId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "adSetId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__pauseAdSet"
-    },
-    {
-      "description": "[DANGER: live action] Currently disabled: Meta ad set status changes fail closed in AdMakeAI. Launch/resume from Meta Ads Manager. Always confirm with the user before calling.",
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "adSetId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "connectionId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "connectionId",
-          "adSetId"
-        ],
-        "type": "object"
-      },
-      "name": "zernioAnalytics__resumeAdSet"
     }
   ],
   "version": "1.0.0"
